@@ -25,12 +25,51 @@ The parameter $H$ is still the average number of hours of work reported by stude
 **Prompt:** Create an objected called `fit_obj` which uses `stan_glm()` to estimate a model which explains hours for courses. It still has two parameters: $H$ and $\sigma$. $H$ is the average hours for courses in the population. $\sigma$ is the variability (around the average) in reported hours in the population. Print the model out and write some bullet points which explain the meaning of each parameter you have just estimated.
 
 Review the Cardinal Virtues which serve as our guide for data science. Under Justice, is this model predictive or causal? What would the Preceptor Table look like? Write down the mathematical model we are using.
+```{r}
+fit_obj <- stan_glm(hours ~ 1, 
+                    data = qscores,
+                    family = gaussian(),
+                    refresh = 0
+)
+
+print(fit_obj, detail = FALSE)
+
+# The median hours for courses in the population is 6.2 with a SD of 0.1. The
+# The median variability around the average is 3.5 with and SD of 0.1. The 
+# model is explanatory, explaining patterns in the data we have. The Preceptor 
+# Table would be full of question marks. Creates a Bayesian generalized linear 
+# model
+```
 
 
 
 ## Scene 2
 
 **Prompt:** Create a plot of the posterior probability distribution for $H$. Interpret the plot. 
+```{r}
+fit_obj <- stan_glm(hours ~ 1, 
+                    data = qscores,
+                    family = gaussian(),
+                    refresh = 0
+)
+
+print(fit_obj)
+
+fit_obj %>% 
+  as_tibble() %>% 
+  rename(mu = `(Intercept)`) %>% 
+  ggplot(aes(x = mu)) +
+    geom_histogram(aes(y = after_stat(count/sum(count))), 
+                   binwidth = 0.01, 
+                   color = "white") +
+  labs(title = "Posterior Probability Distribution",
+         subtitle = "Average hours spent in courses",
+         x = "Height in Centimeters",
+         y = "Probability") +
+    theme_classic()
+
+
+```
 
 
 
@@ -40,10 +79,23 @@ Review the Cardinal Virtues which serve as our guide for data science. Under Jus
 **Prompt:** Use your model to answer the following questions: 
 
 What do the rows and columns mean in the matrix returned by `posterior_predict()` mean?
+```{r}
+set.seed(11)
+pp <- posterior_predict(fit_obj) %>%
+  as_tibble() %>%
+  mutate(across(everything(), as.numeric))
+```
 
 
 Define D as the number of hours difference between the workload of two randomly selected courses. What is the 90% confidence interval within which the difference should fall?  
-
+tibble(pred = pp$`1`) %>% 
+  mutate(hr_6 = ifelse(pred > 6, TRUE, FALSE)) %>% 
+  summarize(answer = sum(hr_6) / n())
+```{r}
+tibble(pred = pp$`1`) %>% 
+  mutate(hr_6 = ifelse(pred > 6, TRUE, FALSE)) %>% 
+  summarize(answer = sum(hr_6) / n())
+```
 
 What is your posterior probability distribution for D? 
 
